@@ -18,5 +18,5 @@ message DownloadResponse {
 
 service Fileservice {
     rpc ListFiles (ListFilesRequest) returns (ListFilesResponse);
-    rpc Download (DownloadRequest) returns (DownloadResponse);
+    rpc Download (DownloadRequest) returns (stream DownloadResponse);
 }
