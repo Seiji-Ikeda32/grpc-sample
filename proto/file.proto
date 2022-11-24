@@ -16,7 +16,15 @@ message DownloadResponse {
     bytes date = 1;
 };
 
+message UploadRequest {
+    bytes date =1;
+};
+message UploadResponse {
+    int32 size =1;
+};
+
 service Fileservice {
     rpc ListFiles (ListFilesRequest) returns (ListFilesResponse);
     rpc Download (DownloadRequest) returns (stream DownloadResponse);
+    rpc Upload (stream UploadRequest) returns (UploadResponse);
 }
