@@ -12,7 +12,11 @@ import (
 	"os"
 	"time"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type server struct {
@@ -48,6 +52,10 @@ func (*server) Download(req *pb.DownloadRequest, stream pb.Fileservice_DownloadS
 
 	filename := req.GetFilename()
 	path := "/Users/ikeda-seiji/grpc-sample/strage/" + filename
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return status.Error(codes.NotFound, "File Not Found")
+	}
 
 	file, err := os.Open(path)
 	if err != nil {
@@ -130,13 +138,42 @@ func (*server) UploadAndNotifyProgress(stream pb.Fileservice_UploadAndNotifyProg
 	}
 }
 
+func myLogging() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		log.Printf("Request Data: %+v", req)
+		resp, err = handler(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("reaponse data: %+v", resp)
+
+		return resp, nil
+	}
+}
+
+func authorize(ctx context.Context) (context.Context, error) {
+	token, err := grpc_auth.AuthFromMD(ctx, "Bearer")
+	if err != nil {
+		return nil, err
+	}
+
+	if token != "test-token" {
+		return nil, status.Error(codes.Unauthenticated, "token is Invalid")
+	}
+
+	return ctx, nil
+}
+
 func main() {
 	lis, err := net.Listen("tcp", "localhost:8080")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(grpc.UnaryInterceptor(
+		grpc_middleware.ChainUnaryServer(
+			myLogging(),
+			grpc_auth.UnaryServerInterceptor(authorize))))
 	pb.RegisterFileserviceServer(s, &server{})
 
 	fmt.Println("server is running...")
