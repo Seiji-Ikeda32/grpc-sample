@@ -23,8 +23,16 @@ message UploadResponse {
     int32 size =1;
 };
 
+message UploadAndNotifyProgressRequest {
+    bytes date =1;
+}
+message UploadAndNotifyProgressReaponse {
+    string msg =1;
+}
+
 service Fileservice {
     rpc ListFiles (ListFilesRequest) returns (ListFilesResponse);
     rpc Download (DownloadRequest) returns (stream DownloadResponse);
     rpc Upload (stream UploadRequest) returns (UploadResponse);
+    rpc UploadAndNotifyProgress (stream UploadAndNotifyProgressRequest) returns (stream UploadAndNotifyProgressReaponse);
 }
