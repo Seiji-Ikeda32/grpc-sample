@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"grpc-sample/pb"
+	"io"
 	"log"
 
 	"google.golang.org/grpc"
@@ -18,7 +19,8 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewFileserviceClient(conn)
-	callListFiles(client)
+	// callListFiles(client)
+	callDownload(client)
 }
 
 func callListFiles(client pb.FileserviceClient) {
@@ -28,4 +30,24 @@ func callListFiles(client pb.FileserviceClient) {
 	}
 
 	fmt.Println(res.GetFilenames())
+}
+
+func callDownload(client pb.FileserviceClient) {
+	req := &pb.DownloadRequest{Filename: "name.txt"}
+	stream, err := client.Download(context.Background(), req)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalln(err)
+		}
+		log.Printf("Response from Download(bytes): %v", res.GetDate())
+		log.Printf("Response from Download(string): %v", string(res.GetDate()))
+	}
 }
